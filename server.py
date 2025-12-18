@@ -17,9 +17,7 @@ async def read_index():
         return FileResponse(path)
     return "Kütüphane dosyası bulunamadı (kutuphane/filigran (2).html)"
 
-@app.get("/cancel-tool")
-async def read_cancel_tool():
-    return FileResponse("templates/cancel_tool.html")
+
 
 # Statik dosyaları (logo.png vs) kök dizinden sunmak için
 # Uyarı: Bu en son tanımlanmalı ki API rotalarını ezmesin.

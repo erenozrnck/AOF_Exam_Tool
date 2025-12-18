@@ -323,7 +323,7 @@
                     <div class="bg-pink-600 p-6 text-white text-center">
                         <div id="dropZoneAuto"
                             class="border-2 border-dashed border-white/40 bg-white/10 rounded-xl p-8 cursor-pointer transition-all hover:bg-white/20">
-                            <input type="file" id="pdfInputAuto" accept="application/pdf" multiple class="hidden">
+                            <input type="file" id="pdfInputAuto" accept=".pdf" multiple class="hidden">
                             <i class="fa-solid fa-folder-plus text-4xl mb-3"></i>
                             <h3 class="text-lg font-bold">Dosyaları Buraya Sürükleyin veya Seçin</h3>
                             <p class="text-sm opacity-80 mt-2">Çoklu şeçim (Örn: ADL201U_A.pdf, ADL201U_B.pdf...)</p>
@@ -380,78 +380,97 @@
             <div id="view-cancel" class="view-section hidden transition-opacity duration-300">
                 <div class="w-full max-w-4xl mb-6 text-center mx-auto">
                     <h1 class="text-3xl font-bold text-gray-800"><i
-                            class="fa-solid fa-pen-to-square text-red-600 mr-2"></i>Soru
+                            class="fa-solid fa-pen-to-square text-green-600 mr-2"></i>Soru
                         Düzenleme Aracı</h1>
                     <p class="text-gray-500 mt-1">PDF üzerindeki soruları kolayca iptal edin veya cevap anahtarını
                         güncelleyin.</p>
                 </div>
 
-                <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div class="bg-red-600 p-6 text-white font-semibold flex items-center justify-center">
-                        <i class="fa-solid fa-eraser mr-2"></i> İşlem Paneli
-                    </div>
-                    <div class="p-8 space-y-6">
+                <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-green-600 p-6 text-white text-center">
+                        <div id="dropZoneCancel"
+                            class="border-2 border-dashed border-white/40 bg-white/10 rounded-xl p-8 cursor-pointer transition-all hover:bg-white/20">
+                            <input type="file" id="pdfInputCancel" accept=".pdf" class="hidden">
 
-                        <!-- File Upload -->
-                        <div class="space-y-2">
-                            <label class="block text-sm font-medium text-gray-700">Sınav PDF Dosyası</label>
-                            <div id="dropZoneCancel"
-                                class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-red-400 hover:bg-red-50">
-                                <input type="file" id="pdfInputCancel" accept="application/pdf" class="hidden">
-                                <div id="uploadTextCancel">
-                                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
-                                    <p class="text-sm text-gray-500">Dosyayı buraya sürükleyin veya seçin</p>
-                                </div>
-                                <div id="fileInfoCancel"
-                                    class="hidden flex items-center justify-center space-x-2 text-red-600">
-                                    <i class="fa-solid fa-check-circle"></i>
-                                    <span id="fileNameCancel" class="font-medium text-sm truncate max-w-[200px]"></span>
-                                    <button id="removeFileCancel" class="text-gray-400 hover:text-red-700 ml-2"><i
-                                            class="fa-solid fa-times"></i></button>
-                                </div>
+                            <!-- Initial Upload Text -->
+                            <div id="uploadTextCancel">
+                                <i class="fa-solid fa-cloud-arrow-up text-4xl mb-3"></i>
+                                <h3 class="text-lg font-bold">Dosyayı Buraya Sürükleyin veya Seçin</h3>
+                                <p class="text-sm opacity-80 mt-2">Sadece PDF dosyaları</p>
+                            </div>
+
+                            <!-- Selected File Info -->
+                            <div id="fileInfoCancel" class="hidden">
+                                <i class="fa-solid fa-file-pdf text-4xl mb-2"></i>
+                                <h3 id="fileNameCancel" class="text-lg font-bold truncate max-w-lg mx-auto"></h3>
+                                <button id="removeFileCancel"
+                                    class="mt-2 text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded text-white transition">Dosyayı
+                                    Kaldır</button>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Cancel Input -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">İptal Edilen Sorular</label>
-                            <input type="text" id="iptalInput" placeholder="Örn: 3, 8, 12"
-                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
-                            <p class="text-xs text-gray-400 mt-1">Virgülle ayırarak girin.</p>
-                        </div>
+                    <div id="cancelContent" class="p-8 hidden">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <!-- Cancel Input -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">İptal Edilen Sorular</label>
+                                <input type="text" id="iptalInput" placeholder="Örn: 3, 8, 12"
+                                    class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-green-500 outline-none text-sm transition shadow-sm">
+                                <p class="text-xs text-gray-400 mt-1">Virgülle ayırarak girin.</p>
+                            </div>
 
-                        <!-- Change Input -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Cevabı Değişen Sorular</label>
-                            <input type="text" id="degisiklikInput" placeholder="Örn: 60:A, 12:C"
-                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
-                            <p class="text-xs text-gray-400 mt-1">Format: SoruNo:YeniCevap</p>
-                        </div>
+                            <!-- Change Input -->
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Cevabı Değişen Sorular</label>
+                                <input type="text" id="degisiklikInput" placeholder="Örn: 60:A, 12:C"
+                                    class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-green-500 outline-none text-sm transition shadow-sm">
+                                <p class="text-xs text-gray-400 mt-1">Format: SoruNo:YeniCevap</p>
+                            </div>
 
-                        <!-- Date Input -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duyuru Tarihi</label>
-                            <input type="date" id="tarihInput"
-                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
+                            <!-- Date Input -->
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-bold text-gray-700 mb-2">Duyuru Tarihi</label>
+                                <input type="date" id="tarihInput"
+                                    class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-green-500 outline-none text-sm transition shadow-sm">
+                            </div>
                         </div>
 
                         <!-- Action Button -->
                         <button id="runCancelBtn" onclick="processCancelTool()"
-                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <span id="cancelBtnSpinner" class="hidden"><i
                                     class="fa-solid fa-circle-notch fa-spin"></i></span>
                             <span id="cancelBtnText">Uygula ve PDF Oluştur</span>
                         </button>
 
+                        <!-- Success Box -->
                         <div id="cancelSuccessBox"
-                            class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center animate-pulse">
+                            class="hidden mt-6 p-6 bg-green-50 border border-green-200 rounded-xl text-center">
+                            <div
+                                class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fa-solid fa-check text-2xl text-green-600"></i>
+                            </div>
+                            <h3 class="text-lg font-bold text-gray-800">İşlem Başarılı!</h3>
+                            <p class="text-sm text-gray-600 mb-4">Dosyanız işlendi ve indirilmeye hazır.</p>
                             <a id="cancelDownloadLink" href="#" download
-                                class="text-green-700 font-bold hover:underline flex items-center justify-center">
-                                <i class="fa-solid fa-file-arrow-down mr-2"></i> İndirmek için tıklayın
+                                class="inline-flex items-center justify-center space-x-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow transition">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Dosyayı İndir</span>
                             </a>
+                            <div class="mt-4">
+                                <button onclick="resetCancelTool()"
+                                    class="text-sm text-gray-500 hover:text-gray-700 underline">Yeni İşlem</button>
+                            </div>
                         </div>
-
                     </div>
+
+                    <!-- Initial State Message (Empty) -->
+                    <div id="cancelEmpty" class="p-12 text-center text-gray-400">
+                        <i class="fa-solid fa-eraser text-5xl mb-4 opacity-20"></i>
+                        <p>İşlem yapmak için yukarıdaki alana bir PDF yükleyin.</p>
+                    </div>
+
                 </div>
             </div>
 
@@ -484,8 +503,9 @@
             if (viewName === 'auto') document.getElementById('nav-auto').className = pinkClass;
 
             // Cancel Nav Style
-            const redClass = "w-full text-left py-3 px-4 rounded-lg bg-red-600 text-white shadow-lg transition-all hover:bg-red-700 flex items-center";
-            if (viewName === 'cancel') document.getElementById('nav-cancel').className = redClass;
+            // Cancel Nav Style
+            const greenClass = "w-full text-left py-3 px-4 rounded-lg bg-green-600 text-white shadow-lg transition-all hover:bg-green-700 flex items-center";
+            if (viewName === 'cancel') document.getElementById('nav-cancel').className = greenClass;
         }
 
         function toggleSidebarInternal() {
@@ -1382,11 +1402,11 @@
         // Date default
         document.getElementById("tarihInput").valueAsDate = new Date();
 
-        cancelDropZone.addEventListener('dragover', (e) => { e.preventDefault(); cancelDropZone.classList.add('bg-red-50', 'border-red-400'); });
-        cancelDropZone.addEventListener('dragleave', () => { cancelDropZone.classList.remove('bg-red-50', 'border-red-400'); });
+        cancelDropZone.addEventListener('dragover', (e) => { e.preventDefault(); cancelDropZone.classList.add('bg-green-50', 'border-green-400'); });
+        cancelDropZone.addEventListener('dragleave', () => { cancelDropZone.classList.remove('bg-green-50', 'border-green-400'); });
         cancelDropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            cancelDropZone.classList.remove('bg-red-50', 'border-red-400');
+            cancelDropZone.classList.remove('bg-green-50', 'border-green-400');
             if (e.dataTransfer.files.length) handleCancelFile(e.dataTransfer.files[0]);
         });
         cancelDropZone.addEventListener('click', () => cancelInput.click());
@@ -1399,12 +1419,7 @@
             cancelFileInfo.classList.add('hidden');
         });
 
-        function handleCancelFile(file) {
-            if (file.type !== 'application/pdf') return alert("Sadece PDF dosyaları!");
-            cancelFileName.textContent = file.name;
-            cancelUploadText.classList.add('hidden');
-            cancelFileInfo.classList.remove('hidden');
-        }
+
 
         function parseIptal(text) {
             return [...new Set(
@@ -1417,20 +1432,52 @@
             )];
         }
 
+
+
+
+
+        function handleCancelFile(file) {
+            // Remove check for 'application/pdf' mime type because some systems might not set it correctly
+            // Just check extension if you want, or rely on server side check
+            if (!file.name.toLowerCase().endsWith('.pdf')) return alert("Sadece PDF dosyaları!");
+
+            // Allow re-assignment to input for FormData usage
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            cancelInput.files = dt.files;
+
+            cancelFileName.textContent = file.name;
+            cancelUploadText.classList.add('hidden');
+            cancelFileInfo.classList.remove('hidden');
+
+            // Show content area
+            document.getElementById('cancelEmpty').classList.add('hidden');
+            document.getElementById('cancelContent').classList.remove('hidden');
+        }
+
+        function resetCancelTool() {
+            cancelInput.value = '';
+            document.getElementById('iptalInput').value = '';
+            document.getElementById('degisiklikInput').value = '';
+            document.getElementById('tarihInput').value = '';
+
+            // Initial State restore
+            cancelUploadText.classList.remove('hidden');
+            cancelFileInfo.classList.add('hidden');
+
+            // Hide content, show empty
+            document.getElementById('cancelContent').classList.add('hidden');
+            document.getElementById('cancelEmpty').classList.remove('hidden');
+            document.getElementById('cancelSuccessBox').classList.add('hidden');
+        }
+
         async function processCancelTool() {
-            const f = cancelInput.files[0] || (cancelFileName.textContent && cancelInput.files[0]); // Check helper
-
-            // Re-check input strictly
-            // Note: input element might not represent the dropped file if dropped. 
-            // Better to rely on a variable or just enforce input usage.
-            // For simplicity in this edit, assuming input.files is populated (drop handler needs to populate it or we store it)
-            // Let's fix drop handler to populate input
-
             if (!cancelInput.files.length) return alert("Lütfen bir PDF dosyası seçin.");
 
             const btn = document.getElementById('runCancelBtn');
             const spinner = document.getElementById('cancelBtnSpinner');
             const btnText = document.getElementById('cancelBtnText');
+
             const successBox = document.getElementById('cancelSuccessBox');
             const downloadLink = document.getElementById('cancelDownloadLink');
 
@@ -1485,9 +1532,16 @@
                 const blob = await res.blob();
                 const url = URL.createObjectURL(blob);
 
-                downloadLink.href = url;
-                downloadLink.download = (f.name || "duzenlenmis_sinav.pdf");
-                successBox.classList.remove('hidden');
+                // Direct Download
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = (cancelInput.files[0].name.replace('.pdf', '_duzenlenmis.pdf') || "duzenlenmis_sinav.pdf");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // Optional: Show a subtle notification or just reset? 
+                // User said "hiç gerek yok" (no need at all), so just keep it clean.
 
             } catch (err) {
                 alert("Hata: " + err.message);
@@ -1497,21 +1551,6 @@
                 btnText.textContent = "Uygula ve PDF Oluştur";
             }
         }
-
-        // Fix Drop Handler to populate Input
-        function handleCancelFile(file) {
-            if (file.type !== 'application/pdf') return alert("Sadece PDF dosyaları!");
-
-            // Allow re-assignment to input for FormData usage
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            cancelInput.files = dt.files;
-
-            cancelFileName.textContent = file.name;
-            cancelUploadText.classList.add('hidden');
-            cancelFileInfo.classList.remove('hidden');
-        }
-
     </script>
 </body>
 
