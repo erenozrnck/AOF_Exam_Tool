@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AÖF Araçları - Filigran & Birleştirme</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF-Lib Library (PDF Düzenleme) -->
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+    <!-- Fontkit (Türkçe Font Desteği) -->
+    <script src="https://unpkg.com/@pdf-lib/fontkit/dist/fontkit.umd.js"></script>
+    <!-- PDF.js (PDF Görüntüleme/Render) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <!-- JSZip (Toplu İndirme) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .drag-active {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        #previewCanvas {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        .sidebar {
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar"
+        class="bg-gray-900 text-white w-64 flex flex-col shadow-2xl z-20 transition-all duration-300 relative">
+        <div class="p-6 border-b border-gray-700 flex items-center justify-between">
+            <img src="logo.png" alt="AÖF Araçları" class="h-10 object-contain">
+            <button id="toggleSidebar" class="text-gray-400 hover:text-white lg:hidden"><i
+                    class="fa-solid fa-bars"></i></button>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-2">
+            <button onclick="switchView('watermark')" id="nav-watermark"
+                class="w-full text-left py-3 px-4 rounded-lg bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 flex items-center">
+                <i class="fa-solid fa-stamp w-8 text-center"></i>
+                <span class="font-medium">Filigran Ekle</span>
+            </button>
+            <button onclick="switchView('merger')" id="nav-merger"
+                class="w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center">
+                <i class="fa-solid fa-object-group w-8 text-center"></i>
+                <span class="font-medium">PDF Birleştir</span>
+            </button>
+            <button id="nav-auto" onclick="switchView('auto')"
+                class="w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center">
+                <i class="fa-solid fa-wand-magic-sparkles w-8 text-center"></i>
+                <span class="font-medium">Otomatik</span>
+            </button>
+            <button onclick="switchView('cancel')" id="nav-cancel"
+                class="w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center">
+                <i class="fa-solid fa-pen-to-square w-8 text-center"></i>
+                <span class="font-medium">Soru Düzenleme</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-gray-800 text-xs text-center text-gray-500">
+            v2.0 • AÖF Araç Seti
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+        <!-- Mobile Header -->
+        <div class="lg:hidden bg-white shadow p-4 flex items-center justify-between z-10">
+            <h1 class="font-bold text-gray-800">AÖF Araç Seti</h1>
+            <button onclick="toggleSidebarInternal()" class="text-gray-600"><i
+                    class="fa-solid fa-bars text-xl"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-auto p-4 lg:p-8 relative">
+
+            <!-- ============================== VIEW 1: WATERMARK TOOL ============================== -->
+            <div id="view-watermark" class="view-section transition-opacity duration-300">
+                <div class="w-full max-w-6xl mb-6 text-center mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800"><i
+                            class="fa-solid fa-file-pdf text-blue-600 mr-2"></i>Gelişmiş PDF Filigran Aracı</h1>
+                    <p class="text-gray-500 mt-1">Belgelerinizi güvenle filigranlayın. Otomatik hizalama ve sığdırma.
+                    </p>
+                </div>
+
+                <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start mx-auto">
+                    <!-- LEFT COLUMN -->
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div class="bg-blue-600 p-4 text-white font-semibold flex items-center"><i
+                                class="fa-solid fa-sliders mr-2"></i> Ayarlar</div>
+                        <div class="p-6 space-y-6">
+                            <div class="space-y-2">
+                                <label class="block text-sm font-medium text-gray-700">PDF Dosyası</label>
+                                <div id="dropZone"
+                                    class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-blue-400 hover:bg-gray-50">
+                                    <input type="file" id="pdfInput" accept="application/pdf" multiple class="hidden">
+                                    <div id="uploadText">
+                                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+                                        <p class="text-sm text-gray-500">Dosyaları buraya sürükleyin (Çoklu Seçim)</p>
+                                    </div>
+                                    <div id="fileInfo"
+                                        class="hidden flex items-center justify-center space-x-2 text-blue-600">
+                                        <i class="fa-solid fa-check-circle"></i>
+                                        <span id="fileName" class="font-medium text-sm truncate max-w-[200px]"></span>
+                                        <button id="removeFile" class="text-red-500 hover:text-red-700 ml-2"><i
+                                                class="fa-solid fa-times"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Font Selection -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Genel Yazı Tipi
+                                        (Header/Footer)</label>
+                                    <select id="mainFontSelect" onchange="loadFonts()"
+                                        class="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none text-xs bg-white">
+                                        <option value="DejaVuSans" selected>DejaVu Sans (Tam Uyumlu)</option>
+                                        <option value="Roboto">Roboto</option>
+                                        <option value="NotoSerif">Noto Serif</option>
+                                        <option value="OpenSans">Open Sans</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Filigran Yazı Tipi
+                                        (Orta)</label>
+                                    <select id="watermarkFontSelect" onchange="loadFonts()"
+                                        class="w-full rounded-lg border-gray-300 border p-2 focus:ring-2 focus:ring-blue-500 outline-none text-xs bg-white">
+                                        <option value="DejaVuSans">DejaVu Sans</option>
+                                        <option value="Roboto" selected>Roboto (Önerilen)</option>
+                                        <option value="NotoSerif">Noto Serif</option>
+                                        <option value="OpenSans">Open Sans</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Yazı Rengi
+                                        (Genel)</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="color" id="mainColor" value="#000000"
+                                            class="h-8 w-full cursor-pointer rounded border border-gray-300 p-0.5">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Filigran Rengi</label>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="color" id="watermarkColor" value="#DFDFDF"
+                                            class="h-8 w-full cursor-pointer rounded border border-gray-300 p-0.5">
+                                    </div>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-xs font-medium text-gray-700 mb-1">Filigran Opaklığı: <span
+                                            id="opacityValue">0.85</span></label>
+                                    <input type="range" id="watermarkOpacity" min="0" max="100" value="85"
+                                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                            <hr class="border-gray-100">
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Üst
+                                            Bilgi (Header)</label>
+                                        <div class="flex items-center space-x-2"><label
+                                                class="text-xs text-gray-400">Boyut:</label><input type="number"
+                                                id="headerFontSize" value="6.9" min="6" max="72"
+                                                class="w-16 h-6 text-xs border border-gray-300 rounded px-1 text-center outline-none focus:border-blue-500">
+                                        </div>
+                                    </div>
+                                    <textarea id="headerText" rows="4"
+                                        class="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-y text-sm"
+                                        placeholder="Örn: GİZLİ BELGE&#10;YÖNETİM KURULU KARARI">Açıköğretim Sistemi ile ilgili merak ettiğiniz her şey AOSDESTEK Sisteminde. AOSDESTEK Sistemine aosdestek.anadolu.edu.tr adresinden ulaşabilirsiniz.</textarea>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Orta
+                                        Filigran (Otomatik Sığdırma)</label>
+                                    <textarea id="watermarkText" rows="4"
+                                        class="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-y text-sm"
+                                        placeholder="Örn: TASLAKTIR&#10;Çok uzun bir metin girseniz bile sayfaya sığdırılacaktır.">      Anadolu Üniversitesi Açıköğretim Sistemi&#10;      2025-2026 Güz Dönemi&#10;      Arasınav</textarea>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between items-center mb-1">
+                                        <label
+                                            class="block text-xs font-semibold text-gray-500 uppercase tracking-wider">Alt
+                                            Bilgi (Footer)</label>
+                                        <div class="flex items-center space-x-2"><label
+                                                class="text-xs text-gray-400">Boyut:</label><input type="number"
+                                                id="footerFontSize" value="6.9" min="6" max="72"
+                                                class="w-16 h-6 text-xs border border-gray-300 rounded px-1 text-center outline-none focus:border-blue-500">
+                                        </div>
+                                    </div>
+                                    <textarea id="footerText" rows="4"
+                                        class="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-y text-sm"
+                                        placeholder="Örn: Sayfa No: ...&#10;Bu belge elektronik imzalıdır.">Anadolu Üniversitesi tarafından hazırlanmış olan bu testlerin her hakkı saklıdır. Hangi amaçla olursa olsun, testlerin tamamının veya bir kısmının Anadolu Üniversitesi'nin yazılı izni olmadan kopya edilmesi, fotoğraflarının çekilmesi, herhangi bir yolla çoğaltılması ya da kullanılması yasaktır. Bu yasağa uymayanlar gerekli cezai sorumluluğu ve testlerin hazırlanmasındaki mali külfeti peşinen kabullenmiş sayılır.</textarea>
+                                </div>
+                            </div>
+                            <button id="processBtn" onclick="processAndDownloadPDF()"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition transform active:scale-95 flex items-center justify-center space-x-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-download"></i><span>PDF'i İndir</span>
+                            </button>
+                            <div id="status" class="hidden rounded-lg p-3 text-sm text-center font-medium"></div>
+                        </div>
+                    </div>
+                    <!-- RIGHT COLUMN -->
+                    <div class="bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col h-full min-h-[500px]">
+                        <div class="bg-gray-800 p-4 text-white font-semibold flex items-center justify-between">
+                            <span><i class="fa-solid fa-eye mr-2"></i> Önizleme (Sayfa 1)</span>
+                            <span id="previewStatus" class="text-xs text-gray-400 font-normal">Bekleniyor...</span>
+                        </div>
+                        <div class="p-4 bg-gray-100 flex-grow flex items-center justify-center relative overflow-auto">
+                            <div id="canvasContainer" class="relative hidden"><canvas id="previewCanvas"></canvas></div>
+                            <div id="emptyState" class="text-center text-gray-400"><i
+                                    class="fa-solid fa-file-pdf text-6xl mb-4 opacity-30"></i>
+                                <p>Önizleme görmek için bir PDF dosyası yükleyin.</p>
+                            </div>
+                            <div id="previewLoading"
+                                class="hidden absolute inset-0 bg-gray-100/80 z-10 flex items-center justify-center">
+                                <div class="text-center"><i
+                                        class="fa-solid fa-circle-notch fa-spin text-4xl text-blue-500"></i>
+                                    <p class="mt-2 text-gray-600 font-medium">Oluşturuluyor...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================== VIEW 2: MERGER TOOL ============================== -->
+            <div id="view-merger" class="view-section hidden transition-opacity duration-300">
+                <div class="w-full max-w-4xl mb-6 text-center mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800"><i
+                            class="fa-solid fa-object-group text-purple-600 mr-2"></i>Otomatik Sınav Birleştirici</h1>
+                    <p class="text-gray-500 mt-1">Sınav gruplarını (A, B, C, D) otomatik tanır ve ders bazında tek PDF
+                        haline getirir.</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-purple-600 p-6 text-white text-center">
+                        <div id="dropZoneMerger"
+                            class="border-2 border-dashed border-white/40 bg-white/10 rounded-xl p-8 cursor-pointer transition-all hover:bg-white/20">
+                            <input type="file" id="pdfInputMerger" accept="application/pdf" multiple class="hidden">
+                            <i class="fa-solid fa-folder-open text-4xl mb-3"></i>
+                            <h3 class="text-lg font-bold">Dosyaları Buraya Sürükleyin veya Seçin</h3>
+                            <p class="text-sm opacity-80 mt-2">Çoklu seçim yapabilirsiniz. (Örn: ADL201U_A.pdf,
+                                ADL201U_B.pdf...)</p>
+                        </div>
+                    </div>
+
+                    <div id="mergerContent" class="p-6 hidden">
+                        <!-- Suffix Filter Toolbar -->
+                        <div id="mergerFilterContainer"
+                            class="bg-purple-50 border border-purple-200 rounded-lg p-3 mb-4 flex flex-wrap items-center gap-3 min-h-[50px]">
+                            <span class="text-xs font-bold text-gray-400 uppercase">Gruplar:</span>
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+
+                        <!-- Batch Rename Toolbar -->
+                        <div
+                            class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 flex flex-col md:flex-row items-center gap-3">
+                            <div class="text-sm font-bold text-gray-600 whitespace-nowrap"><i
+                                    class="fa-solid fa-pen-to-square"></i> Dosya Adı Sonuna Ekle:</div>
+                            <input type="text" id="suffixText" placeholder="Örn: -guz-donemi"
+                                class="flex-1 w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:border-purple-500 outline-none">
+                            <button onclick="applyBatchRename()"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium px-4 py-1.5 rounded transition">Uygula</button>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-700">Bulunan Ders Grupları</h3>
+                            <span id="groupCountBadge"
+                                class="bg-purple-100 text-purple-800 text-xs font-bold px-2 py-1 rounded-full">0
+                                Grup</span>
+                        </div>
+
+                        <div id="groupsContainer" class="space-y-4 mb-6">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+
+                        <button id="mergeBtn" onclick="processMerging()"
+                            class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Birleştir ve İndir</span>
+                        </button>
+                        <div id="mergeStatus" class="mt-4 text-center text-sm font-medium text-gray-600"></div>
+                    </div>
+
+                    <!-- Initial State Message -->
+                    <div id="mergerEmpty" class="p-12 text-center text-gray-400">
+                        <i class="fa-solid fa-layer-group text-5xl mb-4 opacity-20"></i>
+                        <p>Henüz dosya seçilmedi.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================== VIEW 3: AUTOMATIC TOOL ============================== -->
+            <div id="view-auto" class="view-section hidden transition-opacity duration-300">
+                <div class="w-full max-w-4xl mb-6 text-center mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800"><i
+                            class="fa-solid fa-wand-magic-sparkles text-pink-600 mr-2"></i>Otomatik İşlem Merkezi</h1>
+                    <p class="text-gray-500 mt-1">Dosyaları birleştirir VE mevcut filigran ayarlarını (Sol menüdeki)
+                        uygulayarak tek seferde çıktı verir.</p>
+                </div>
+
+                <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-pink-600 p-6 text-white text-center">
+                        <div id="dropZoneAuto"
+                            class="border-2 border-dashed border-white/40 bg-white/10 rounded-xl p-8 cursor-pointer transition-all hover:bg-white/20">
+                            <input type="file" id="pdfInputAuto" accept="application/pdf" multiple class="hidden">
+                            <i class="fa-solid fa-folder-plus text-4xl mb-3"></i>
+                            <h3 class="text-lg font-bold">Dosyaları Buraya Sürükleyin veya Seçin</h3>
+                            <p class="text-sm opacity-80 mt-2">Çoklu şeçim (Örn: ADL201U_A.pdf, ADL201U_B.pdf...)</p>
+                        </div>
+                    </div>
+
+                    <div id="autoContent" class="p-6 hidden">
+                        <!-- Suffix Filter Toolbar -->
+                        <div id="autoFilterContainer"
+                            class="bg-pink-50 border border-pink-200 rounded-lg p-3 mb-4 flex flex-wrap items-center gap-3 min-h-[50px]">
+                            <span class="text-xs font-bold text-gray-400 uppercase">Gruplar:</span>
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+
+                        <!-- Batch Rename Toolbar for Auto -->
+                        <div
+                            class="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 flex flex-col md:flex-row items-center gap-3">
+                            <div class="text-sm font-bold text-gray-600 whitespace-nowrap"><i
+                                    class="fa-solid fa-pen-to-square"></i> Dosya Adı Sonuna Ekle:</div>
+                            <input type="text" id="suffixTextAuto" placeholder="Örn: -guz-donemi"
+                                class="flex-1 w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:border-pink-500 outline-none">
+                            <button onclick="applyBatchRenameAuto()"
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium px-4 py-1.5 rounded transition">Uygula</button>
+                        </div>
+
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-gray-700">Bulunan Ders Grupları</h3>
+                            <span id="groupCountBadgeAuto"
+                                class="bg-pink-100 text-pink-800 text-xs font-bold px-2 py-1 rounded-full">0
+                                Grup</span>
+                        </div>
+
+                        <div id="autoGroupsContainer" class="space-y-4 mb-6">
+                            <!-- JS ile doldurulacak -->
+                        </div>
+
+                        <button id="autoProcessBtn" onclick="processAuto()"
+                            class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span>Birleştir ve Filigran Ekle</span>
+                        </button>
+                        <div id="autoStatus" class="mt-4 text-center text-sm font-medium text-gray-600"></div>
+                    </div>
+
+                    <!-- Initial State Message -->
+                    <div id="autoEmpty" class="p-12 text-center text-gray-400">
+                        <i class="fa-solid fa-layer-group text-5xl mb-4 opacity-20"></i>
+                        <p>Henüz dosya seçilmedi.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================== VIEW 4: CANCEL TOOL ============================== -->
+            <div id="view-cancel" class="view-section hidden transition-opacity duration-300">
+                <div class="w-full max-w-4xl mb-6 text-center mx-auto">
+                    <h1 class="text-3xl font-bold text-gray-800"><i
+                            class="fa-solid fa-pen-to-square text-red-600 mr-2"></i>Soru
+                        Düzenleme Aracı</h1>
+                    <p class="text-gray-500 mt-1">PDF üzerindeki soruları kolayca iptal edin veya cevap anahtarını
+                        güncelleyin.</p>
+                </div>
+
+                <div class="max-w-xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="bg-red-600 p-6 text-white font-semibold flex items-center justify-center">
+                        <i class="fa-solid fa-eraser mr-2"></i> İşlem Paneli
+                    </div>
+                    <div class="p-8 space-y-6">
+
+                        <!-- File Upload -->
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Sınav PDF Dosyası</label>
+                            <div id="dropZoneCancel"
+                                class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-red-400 hover:bg-red-50">
+                                <input type="file" id="pdfInputCancel" accept="application/pdf" class="hidden">
+                                <div id="uploadTextCancel">
+                                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+                                    <p class="text-sm text-gray-500">Dosyayı buraya sürükleyin veya seçin</p>
+                                </div>
+                                <div id="fileInfoCancel"
+                                    class="hidden flex items-center justify-center space-x-2 text-red-600">
+                                    <i class="fa-solid fa-check-circle"></i>
+                                    <span id="fileNameCancel" class="font-medium text-sm truncate max-w-[200px]"></span>
+                                    <button id="removeFileCancel" class="text-gray-400 hover:text-red-700 ml-2"><i
+                                            class="fa-solid fa-times"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cancel Input -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">İptal Edilen Sorular</label>
+                            <input type="text" id="iptalInput" placeholder="Örn: 3, 8, 12"
+                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
+                            <p class="text-xs text-gray-400 mt-1">Virgülle ayırarak girin.</p>
+                        </div>
+
+                        <!-- Change Input -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cevabı Değişen Sorular</label>
+                            <input type="text" id="degisiklikInput" placeholder="Örn: 60:A, 12:C"
+                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
+                            <p class="text-xs text-gray-400 mt-1">Format: SoruNo:YeniCevap</p>
+                        </div>
+
+                        <!-- Date Input -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duyuru Tarihi</label>
+                            <input type="date" id="tarihInput"
+                                class="w-full rounded-lg border-gray-300 border p-3 focus:ring-2 focus:ring-red-500 outline-none text-sm transition shadow-sm">
+                        </div>
+
+                        <!-- Action Button -->
+                        <button id="runCancelBtn" onclick="processCancelTool()"
+                            class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-2 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <span id="cancelBtnSpinner" class="hidden"><i
+                                    class="fa-solid fa-circle-notch fa-spin"></i></span>
+                            <span id="cancelBtnText">Uygula ve PDF Oluştur</span>
+                        </button>
+
+                        <div id="cancelSuccessBox"
+                            class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center animate-pulse">
+                            <a id="cancelDownloadLink" href="#" download
+                                class="text-green-700 font-bold hover:underline flex items-center justify-center">
+                                <i class="fa-solid fa-file-arrow-down mr-2"></i> İndirmek için tıklayın
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN SCRIPT -->
+    <script>
+        // ================= SPA NAVIGATION =================
+        function switchView(viewName) {
+            // Hide all
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+
+            // Reset Nav Styles
+            document.getElementById('nav-watermark').className = "w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center";
+            document.getElementById('nav-merger').className = "w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center";
+            document.getElementById('nav-auto').className = "w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center";
+            document.getElementById('nav-cancel').className = "w-full text-left py-3 px-4 rounded-lg text-gray-300 hover:bg-gray-800 hover:text-white transition-all flex items-center";
+
+            // Show Active
+            document.getElementById('view-' + viewName).classList.remove('hidden');
+
+            // Set Active Nav Style
+            const blueClass = "w-full text-left py-3 px-4 rounded-lg bg-blue-600 text-white shadow-lg transition-all hover:bg-blue-700 flex items-center";
+            const purpleClass = "w-full text-left py-3 px-4 rounded-lg bg-purple-600 text-white shadow-lg transition-all hover:bg-purple-700 flex items-center";
+            const pinkClass = "w-full text-left py-3 px-4 rounded-lg bg-pink-600 text-white shadow-lg transition-all hover:bg-pink-700 flex items-center";
+
+            if (viewName === 'watermark') document.getElementById('nav-watermark').className = blueClass;
+            if (viewName === 'merger') document.getElementById('nav-merger').className = purpleClass;
+            if (viewName === 'auto') document.getElementById('nav-auto').className = pinkClass;
+
+            // Cancel Nav Style
+            const redClass = "w-full text-left py-3 px-4 rounded-lg bg-red-600 text-white shadow-lg transition-all hover:bg-red-700 flex items-center";
+            if (viewName === 'cancel') document.getElementById('nav-cancel').className = redClass;
+        }
+
+        function toggleSidebarInternal() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+            sidebar.classList.toggle('absolute'); // Mobile overlay mode if needed
+        }
+
+        // ================= SHARED FILTER LOGIC =================
+        function renderSuffixFilters(files, containerId, currentActive, onChange) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            // 1. Get Unique Suffixes
+            const suffixes = [...new Set(files.map(f => f.suffix))].sort();
+
+            // 2. Initialize active list if empty (select all by default)
+            if (currentActive.length === 0 && suffixes.length > 0) {
+                currentActive.push(...suffixes);
+                // Sync back to parent state immediately
+                onChange(currentActive);
+            }
+
+            container.innerHTML = '<span class="text-xs font-bold text-gray-400 uppercase">Gruplar:</span>';
+
+            suffixes.forEach(suffix => {
+                const isChecked = currentActive.includes(suffix);
+                const wrapper = document.createElement('label');
+                wrapper.className = "flex items-center space-x-1 cursor-pointer bg-white px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 select-none";
+                wrapper.innerHTML = `
+                    <input type="checkbox" value="${suffix}" ${isChecked ? 'checked' : ''} class="w-4 h-4 text-purple-600 rounded">
+                    <span class="text-sm font-bold text-gray-700">${suffix}</span>
+                `;
+
+                const checkbox = wrapper.querySelector('input');
+                checkbox.addEventListener('change', (e) => {
+                    if (checkbox.checked) {
+                        if (!currentActive.includes(suffix)) currentActive.push(suffix);
+                    } else {
+                        currentActive = currentActive.filter(s => s !== suffix);
+                    }
+                    onChange(currentActive);
+                });
+                container.appendChild(wrapper);
+            });
+        }
+        // ================= GLOBAL VARIABLES & CONFIG =================
+        let watermarkFiles = [];
+        let cachedMainFontBytes = null;
+        let cachedWatermarkFontBytes = null;
+        let pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const FONT_MAP = {
+            'DejaVuSans': 'https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf',
+            'Roboto': 'https://fonts.gstatic.com/s/roboto/v50/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbWmTgg3Wlg.ttf',
+            'NotoSerif': 'https://raw.githubusercontent.com/notofonts/notofonts.github.io/main/fonts/NotoSerif/hinted/ttf/NotoSerif-Regular.ttf',
+            'OpenSans': 'https://raw.githubusercontent.com/edx/edx-fonts/master/open-sans/fonts/Regular/OpenSans-Regular.ttf'
+        };
+
+        // DOM Elements (Watermark)
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('pdfInput');
+        const uploadText = document.getElementById('uploadText');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const removeFileBtn = document.getElementById('removeFile');
+        const canvas = document.getElementById('previewCanvas');
+        const canvasContainer = document.getElementById('canvasContainer');
+        const emptyState = document.getElementById('emptyState');
+        const previewLoading = document.getElementById('previewLoading');
+        const previewStatus = document.getElementById('previewStatus');
+
+        // Font Selects
+        const mainFontSelect = document.getElementById('mainFontSelect');
+        const watermarkFontSelect = document.getElementById('watermarkFontSelect');
+
+        // Inputs
+        const inputs = ['headerText', 'watermarkText', 'footerText', 'headerFontSize', 'footerFontSize'];
+        let previewDebounceTimer;
+
+        // 1. Initial Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFonts(); // Load initial fonts
+            switchView('watermark');
+        });
+
+        async function loadFonts() {
+            previewStatus.textContent = "Fontlar yenileniyor...";
+
+            const mainFontName = mainFontSelect.value || 'DejaVuSans';
+            const watermarkFontName = watermarkFontSelect.value || 'Roboto';
+
+            try {
+                const [mainBuf, wmBuf] = await Promise.all([
+                    fetch(FONT_MAP[mainFontName]).then(r => r.arrayBuffer()),
+                    fetch(FONT_MAP[watermarkFontName]).then(r => r.arrayBuffer())
+                ]);
+
+                cachedMainFontBytes = mainBuf;
+                cachedWatermarkFontBytes = wmBuf;
+
+                previewStatus.textContent = "Hazır";
+                updatePreview();
+            } catch (e) {
+                console.error("Font error:", e);
+                previewStatus.textContent = "Font Hatası!";
+                alert("Fontlar yüklenemedi. İnternet bağlantınızı kontrol edin.");
+            }
+        }
+
+        // 2. Event Listeners
+        if (mainFontSelect) mainFontSelect.addEventListener('change', loadFonts);
+        if (watermarkFontSelect) watermarkFontSelect.addEventListener('change', loadFonts);
+
+        // 2. Event Listeners
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('bg-blue-50', 'border-blue-400'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('bg-blue-50', 'border-blue-400'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-blue-50', 'border-blue-400');
+            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+        });
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFiles(e.target.files); });
+
+        removeFileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            watermarkFiles = [];
+            fileInput.value = '';
+            uploadText.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
+
+            // Clear Canvas
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvasContainer.classList.add('hidden');
+            emptyState.classList.remove('hidden'); // Show empty state back
+            previewStatus.textContent = "Dosya bekleniyor...";
+        });
+
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                clearTimeout(previewDebounceTimer);
+                previewDebounceTimer = setTimeout(updatePreview, 600);
+            });
+        });
+
+        // New: Color Listeners
+        ['mainColor', 'watermarkColor'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                clearTimeout(previewDebounceTimer);
+                previewDebounceTimer = setTimeout(updatePreview, 300); // faster debounce for color
+            });
+        });
+
+        // Opacity Listener
+        const opacityInput = document.getElementById('watermarkOpacity');
+        const opacityValueDisplay = document.getElementById('opacityValue');
+        opacityInput.addEventListener('input', (e) => {
+            const val = e.target.value / 100;
+            opacityValueDisplay.textContent = val.toFixed(2);
+            clearTimeout(previewDebounceTimer);
+            previewDebounceTimer = setTimeout(updatePreview, 100);
+        });
+
+        // 3. Handlers
+        async function handleFiles(files) {
+            watermarkFiles = [];
+
+            for (const file of files) {
+                if (file.type === 'application/pdf') {
+                    const buffer = await file.arrayBuffer();
+                    watermarkFiles.push({ name: file.name, data: buffer });
+                }
+            }
+
+            if (watermarkFiles.length > 0) {
+                uploadText.classList.add('hidden');
+                fileInfo.classList.remove('hidden');
+
+                if (watermarkFiles.length === 1) {
+                    fileName.textContent = watermarkFiles[0].name;
+                } else {
+                    fileName.textContent = `${watermarkFiles.length} dosya seçildi`;
+                }
+
+                // SHOW CANVAS, HIDE EMPTY STATE
+                if (canvasContainer && emptyState) {
+                    canvasContainer.classList.remove('hidden');
+                    emptyState.classList.add('hidden');
+                } else {
+                    console.error("CanvasContainer or EmptyState not found!");
+                }
+
+                updatePreview();
+            }
+        }
+
+        // ================= WATERMARK TOOL LOGIC (EXISTING) =================
+        // let originalPdfBytes = null; // Replaced by watermarkFiles
+        // let cachedFontBytes = null; // Moved
+        // const fileInput = document.getElementById('pdfInput'); // Moved
+        // const dropZone = document.getElementById('dropZone'); // Moved
+        // const canvas = document.getElementById('previewCanvas');
+        // const canvasContainer = document.getElementById('canvasContainer');
+        // const emptyState = document.getElementById('emptyState');
+        // const previewLoading = document.getElementById('previewLoading');
+        // const previewStatus = document.getElementById('previewStatus');
+
+        // const inputs = ['headerText', 'watermarkText', 'footerText', 'headerFontSize', 'footerFontSize'];
+
+        // dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); }); // Moved
+        // dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('drag-active'); }); // Moved
+        // dropZone.addEventListener('drop', (e) => { // Moved
+        //     e.preventDefault();
+        //     dropZone.classList.remove('drag-active');
+        //     if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+        // });
+        // dropZone.addEventListener('click', () => fileInput.click()); // Moved
+        // fileInput.addEventListener('change', (e) => { // Moved
+        //     if (e.target.files.length) handleFileSelect(e.target.files[0]);
+        // });
+        // document.getElementById('removeFile').addEventListener('click', (e) => { // Moved
+        //     e.stopPropagation();
+        //     resetApp();
+        // });
+
+        // async function handleFileSelect(file) {
+        //     if (file.type !== 'application/pdf') { alert("Lütfen geçerli bir PDF dosyası seçin."); return; }
+        //     document.getElementById('fileName').textContent = file.name;
+        //     document.getElementById('uploadText').classList.add('hidden');
+        //     document.getElementById('fileInfo').classList.remove('hidden');
+        //     emptyState.classList.add('hidden');
+        //     canvasContainer.classList.remove('hidden');
+        //     try {
+        //         previewLoading.classList.remove('hidden');
+        //         // originalPdfBytes = await file.arrayBuffer(); // Replaced by watermarkFiles
+        //         await ensureFontLoaded();
+        //         await updatePreview();
+        //     } catch (err) { console.error(err); alert("Dosya yüklenirken hata oluştu."); } finally { previewLoading.classList.add('hidden'); }
+        // }
+
+        // function resetApp() {
+        //     fileInput.value = '';
+        //     originalPdfBytes = null;
+        //     document.getElementById('uploadText').classList.remove('hidden');
+        //     document.getElementById('fileInfo').classList.add('hidden');
+        //     emptyState.classList.remove('hidden');
+        //     canvasContainer.classList.add('hidden');
+        //     inputs.forEach(id => document.getElementById(id).value = '');
+        //     const ctx = canvas.getContext('2d');
+        //     ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // }
+
+        // async function ensureFontLoaded() {
+        //     if (!cachedFontBytes) {
+        //         previewStatus.textContent = "Font indiriliyor...";
+        //         try {
+        //             const fontUrl = 'https://pdf-lib.js.org/assets/ubuntu/Ubuntu-R.ttf';
+        //             cachedFontBytes = await fetch(fontUrl).then(res => res.arrayBuffer());
+        //         } catch (e) { console.error("Font error:", e); alert("Font yüklenemedi."); }
+        //     }
+        // }
+
+        function wrapText(text, font, fontSize, maxWidth) {
+            if (!text) return [];
+            const paragraphs = text.split('\n');
+            let lines = [];
+            paragraphs.forEach(paragraph => {
+                const words = paragraph.split(' ');
+                let currentLine = '';
+                words.forEach(word => {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    const width = font.widthOfTextAtSize(testLine, fontSize);
+                    if (width < maxWidth) currentLine = testLine;
+                    else { if (currentLine) lines.push(currentLine); currentLine = word; }
+                });
+                if (currentLine) lines.push(currentLine);
+            });
+            return lines;
+        }
+
+        function hexToPdfColor(hex) {
+            const r = parseInt(hex.slice(1, 3), 16) / 255;
+            const g = parseInt(hex.slice(3, 5), 16) / 255;
+            const b = parseInt(hex.slice(5, 7), 16) / 255;
+            return { r, g, b };
+        }
+
+        function drawOverlay(page, fonts, rgb, degrees, texts, settings, colors, opacity) {
+            const { BlendMode } = PDFLib;
+            const fontMain = fonts.main;
+            const fontWatermark = fonts.watermark;
+            const colorMain = colors ? rgb(colors.main.r, colors.main.g, colors.main.b) : rgb(0, 0, 0);
+            const colorWm = colors ? rgb(colors.watermark.r, colors.watermark.g, colors.watermark.b) : rgb(0.8, 0.8, 0.8);
+            const wmOpacity = opacity !== undefined ? opacity : 0.25;
+
+            const { width, height } = page.getSize();
+            const margin = 40;
+            const maxWidth = width - (margin * 2);
+
+            if (texts.header) {
+                const fontSize = parseInt(settings.headerFontSize) || 7;
+                const lineHeight = fontSize * 1.3;
+                const lines = wrapText(texts.header, fontMain, fontSize, maxWidth);
+                const isMultiLine = lines.length > 1;
+                lines.forEach((line, i) => {
+                    const textWidth = fontMain.widthOfTextAtSize(line, fontSize);
+                    let xPos = isMultiLine ? margin : (width / 2) - (textWidth / 2);
+                    page.drawText(line, { x: xPos, y: height - 30 - (i * lineHeight), size: fontSize, font: fontMain, color: colorMain });
+                });
+            }
+
+            if (texts.footer) {
+                const fontSize = parseInt(settings.footerFontSize) || 7;
+                const lineHeight = fontSize * 1.3;
+                const lines = wrapText(texts.footer, fontMain, fontSize, maxWidth);
+                const isMultiLine = lines.length > 1;
+                const footerBottomMargin = 15;
+                lines.forEach((line, i) => {
+                    const textWidth = fontMain.widthOfTextAtSize(line, fontSize);
+                    let xPos = isMultiLine ? margin : (width / 2) - (textWidth / 2);
+                    const lineY = footerBottomMargin + ((lines.length - 1 - i) * lineHeight);
+                    page.drawText(line, { x: xPos, y: lineY, size: fontSize, font: fontMain, color: colorMain });
+                });
+            }
+
+            if (texts.watermark) {
+                const effectiveText = texts.watermark.replace(/\s+$/, '');
+                if (!effectiveText) return;
+                const lines = effectiveText.split('\n');
+                let baseFontSize = 60;
+                const diagonal = Math.sqrt(width * width + height * height);
+                const safeZone = diagonal * 0.75;
+                let maxLineWidth = 0;
+                lines.forEach(line => {
+                    const w = fontWatermark.widthOfTextAtSize(line, baseFontSize);
+                    if (w > maxLineWidth) maxLineWidth = w;
+                });
+                if (maxLineWidth > safeZone) {
+                    const scaleRatio = safeZone / maxLineWidth;
+                    baseFontSize = Math.max(10, Math.floor(baseFontSize * scaleRatio));
+                }
+                const lineHeight = baseFontSize * 1.2;
+                const visualCorrection = (baseFontSize / 3);
+                lines.forEach((line, i) => {
+                    const lineWidth = fontWatermark.widthOfTextAtSize(line, baseFontSize);
+                    const lineIndexFromCenter = ((lines.length - 1) / 2) - i;
+                    const yLocal = (lineIndexFromCenter * lineHeight) - visualCorrection;
+                    const xLocal = -(lineWidth / 2);
+                    const angleRad = Math.PI / 4;
+                    const xRotated = xLocal * Math.cos(angleRad) - yLocal * Math.sin(angleRad);
+                    const yRotated = xLocal * Math.sin(angleRad) + yLocal * Math.cos(angleRad);
+                    page.drawText(line, {
+                        x: (width / 2) + xRotated,
+                        y: (height / 2) + yRotated,
+                        size: baseFontSize, font: fontWatermark, color: colorWm, opacity: wmOpacity, rotate: degrees(45),
+                        blendMode: BlendMode.Multiply
+                    });
+                });
+            }
+        }
+
+        async function updatePreview() {
+            if (watermarkFiles.length === 0 || !cachedMainFontBytes || !cachedWatermarkFontBytes) return;
+            try {
+                previewLoading.classList.remove('hidden');
+                previewStatus.textContent = "İşleniyor...";
+                const { PDFDocument, rgb, degrees } = PDFLib;
+
+                // Use first file for preview
+                const pdfDoc = await PDFDocument.load(watermarkFiles[0].data);
+                pdfDoc.registerFontkit(window.fontkit);
+
+                const fMain = await pdfDoc.embedFont(cachedMainFontBytes);
+                const fWm = await pdfDoc.embedFont(cachedWatermarkFontBytes);
+                const customFonts = { main: fMain, watermark: fWm };
+
+                const firstPage = pdfDoc.getPages()[0];
+                const texts = { header: document.getElementById('headerText').value, watermark: document.getElementById('watermarkText').value, footer: document.getElementById('footerText').value };
+                const settings = { headerFontSize: document.getElementById('headerFontSize').value, footerFontSize: document.getElementById('footerFontSize').value };
+                const colors = {
+                    main: hexToPdfColor(document.getElementById('mainColor').value),
+                    watermark: hexToPdfColor(document.getElementById('watermarkColor').value)
+                };
+                const opacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
+                drawOverlay(firstPage, customFonts, rgb, degrees, texts, settings, colors, opacity);
+                const singlePagePdf = await PDFDocument.create();
+                const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [0]);
+                singlePagePdf.addPage(copiedPage);
+                const pdfBytes = await singlePagePdf.save();
+                const loadingTask = pdfjsLib.getDocument(pdfBytes);
+                const pdf = await loadingTask.promise;
+                const page = await pdf.getPage(1);
+                const viewport = page.getViewport({ scale: (canvasContainer.clientWidth || 500) / page.getViewport({ scale: 1 }).width });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+                previewStatus.textContent = "Güncel";
+            } catch (error) { console.error(error); previewStatus.textContent = "Hata!"; } finally { previewLoading.classList.add('hidden'); }
+        }
+
+        async function processAndDownloadPDF() {
+            if (watermarkFiles.length === 0) return;
+            const btn = document.getElementById('processBtn');
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
+
+                const { PDFDocument, rgb, degrees } = PDFLib;
+                const zip = new JSZip();
+
+                // Get settings once
+                const texts = { header: document.getElementById('headerText').value, watermark: document.getElementById('watermarkText').value, footer: document.getElementById('footerText').value };
+                const settings = { headerFontSize: document.getElementById('headerFontSize').value, footerFontSize: document.getElementById('footerFontSize').value };
+
+                const processedFiles = [];
+
+                for (const file of watermarkFiles) {
+                    const pdfDoc = await PDFLib.PDFDocument.load(file.data);
+                    pdfDoc.registerFontkit(window.fontkit);
+
+                    if (!cachedMainFontBytes || !cachedWatermarkFontBytes) {
+                        throw new Error("Font verisi eksik. Sayfayı yenileyin.");
+                    }
+
+                    // console.log("Font Types:", typeof cachedFontBytes.regular, typeof cachedFontBytes.bold);
+
+                    const fMain = await pdfDoc.embedFont(cachedMainFontBytes);
+                    const fWm = await pdfDoc.embedFont(cachedWatermarkFontBytes);
+                    const customFonts = { main: fMain, watermark: fWm };
+
+                    const colors = {
+                        main: hexToPdfColor(document.getElementById('mainColor').value),
+                        watermark: hexToPdfColor(document.getElementById('watermarkColor').value)
+                    };
+                    const opacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
+
+                    pdfDoc.getPages().forEach(page => drawOverlay(page, customFonts, rgb, degrees, texts, settings, colors, opacity));
+
+                    const pdfBytes = await pdfDoc.save();
+                    processedFiles.push({ name: file.name, data: pdfBytes });
+                }
+
+                if (processedFiles.length === 1) {
+                    // Single File Download
+                    const blob = new Blob([processedFiles[0].data], { type: 'application/pdf' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = processedFiles[0].name;
+                    link.click();
+                } else {
+                    // ZIP Download
+                    processedFiles.forEach(f => {
+                        zip.file(f.name, f.data);
+                    });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(content, "filigranli_dosyalar.zip");
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("İşlem sırasında hata oluştu: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-download"></i> <span>PDF\'i İndir</span>';
+            }
+        }
+
+        // ================= MERGER TOOL LOGIC (NEW) =================
+        const mergerDropZone = document.getElementById('dropZoneMerger');
+        const mergerInput = document.getElementById('pdfInputMerger');
+        let mergerFiles = []; // { name: string, file: File, code: string, suffix: string }
+        let activeSuffixesMerger = []; // List of active suffixes ['A', 'B']
+
+        mergerDropZone.addEventListener('dragover', (e) => { e.preventDefault(); mergerDropZone.classList.add('bg-white/30'); });
+        mergerDropZone.addEventListener('dragleave', () => { mergerDropZone.classList.remove('bg-white/30'); });
+        mergerDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            mergerDropZone.classList.remove('bg-white/30');
+            if (e.dataTransfer.files.length) handleMergerFiles(e.dataTransfer.files);
+        });
+        mergerDropZone.addEventListener('click', () => mergerInput.click());
+        mergerInput.addEventListener('change', (e) => { if (e.target.files.length) handleMergerFiles(e.target.files); });
+
+        function handleMergerFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type !== 'application/pdf') return;
+
+                // Parse Name: CODE_SUFFIX.pdf (e.g., ADL201U_A.pdf)
+                const nameParts = file.name.replace('.pdf', '').split('_');
+                let code = file.name, suffix = 'A';
+
+                if (nameParts.length >= 2) {
+                    suffix = nameParts.pop(); // Last part is suffix (A, B, C...)
+                    code = nameParts.join('_'); // Rest is Code
+                }
+
+                // Check duplicate (Simple Name Check)
+                if (!mergerFiles.some(f => f.name === file.name)) {
+                    mergerFiles.push({ name: file.name, file: file, code: code, suffix: suffix });
+                }
+            });
+
+            // Re-render filters (updates activeSuffixes automatically if new ones appear)
+            renderSuffixFilters(mergerFiles, 'mergerFilterContainer', activeSuffixesMerger, (newActive) => {
+                activeSuffixesMerger = newActive;
+                renderMergerGroups();
+            });
+            renderMergerGroups();
+        }
+
+        function clearMergerList() {
+            mergerFiles = [];
+            activeSuffixesMerger = [];
+            renderSuffixFilters([], 'mergerFilterContainer', [], () => { });
+            renderMergerGroups();
+        }
+
+        function applyBatchRename() {
+            const suffix = document.getElementById('suffixText').value;
+            if (!suffix) return;
+
+            const inputs = document.querySelectorAll('.group-filename-input');
+            inputs.forEach(input => {
+                input.value = input.value + suffix;
+            });
+        }
+
+        function renderMergerGroups() {
+            const container = document.getElementById('groupsContainer');
+            const emptyMsg = document.getElementById('mergerEmpty');
+            const content = document.getElementById('mergerContent');
+
+            if (mergerFiles.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+
+            emptyMsg.classList.add('hidden');
+            content.classList.remove('hidden');
+            container.innerHTML = '';
+
+            // Group by Code
+            const groups = {};
+            const filteredFiles = mergerFiles.filter(item => activeSuffixesMerger.includes(item.suffix));
+
+            filteredFiles.forEach(item => {
+                if (!groups[item.code]) groups[item.code] = [];
+                groups[item.code].push(item);
+            });
+
+            // Sort logic: A < B < C < D
+            Object.keys(groups).forEach(code => {
+                groups[code].sort((a, b) => a.suffix.localeCompare(b.suffix));
+            });
+
+            document.getElementById('groupCountBadge').textContent = `${Object.keys(groups).length} Grup`;
+
+            Object.keys(groups).forEach(code => {
+                const groupItems = groups[code];
+                const card = document.createElement('div');
+                card.className = "bg-gray-50 rounded-lg p-4 border border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4";
+
+                let partsHtml = groupItems.map(item =>
+                    `<span class="inline-block bg-white border px-2 py-1 rounded text-xs text-gray-600 mr-1">${item.suffix}</span>`
+                ).join('');
+
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3 flex-1">
+                        <div class="bg-purple-100 p-2 rounded text-purple-600"><i class="fa-solid fa-folder"></i></div>
+                        <div class="flex-1">
+                            <label class="text-xs text-gray-400 block mb-0.5 ml-1">Çıktı Dosya İsmi</label>
+                            <input type="text" value="${code}" data-code="${code}" class="group-filename-input w-full md:w-64 font-bold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 focus:border-purple-500 outline-none text-sm">
+                            <div class="mt-1">${partsHtml}</div>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-gray-500">
+                        ${groupItems.length} Dosya
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function processMerging() {
+            const btn = document.getElementById('mergeBtn');
+            const status = document.getElementById('mergeStatus');
+
+            if (mergerFiles.length === 0) return;
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Birleştiriliyor...';
+                status.textContent = "Dosyalar işleniyor, lütfen bekleyin...";
+
+                const { PDFDocument } = PDFLib;
+                const zip = new JSZip();
+
+                // Group
+                const groups = {};
+                // Use FILTERED files for processing
+                const filteredFiles = mergerFiles.filter(item => activeSuffixesMerger.includes(item.suffix));
+
+                filteredFiles.forEach(item => {
+                    if (!groups[item.code]) groups[item.code] = [];
+                    groups[item.code].push(item);
+                });
+
+                // Get Custom Filenames from Inputs
+                const filenameMap = {};
+                document.querySelectorAll('.group-filename-input').forEach(input => {
+                    filenameMap[input.dataset.code] = input.value.trim() || input.dataset.code;
+                });
+
+                const groupKeys = Object.keys(groups);
+                const finalBlobs = [];
+
+                for (const code of groupKeys) {
+                    const groupItems = groups[code].sort((a, b) => a.suffix.localeCompare(b.suffix));
+
+                    const mergedPdf = await PDFDocument.create();
+
+                    for (const item of groupItems) {
+                        const fileBytes = await item.file.arrayBuffer();
+                        const srcPdf = await PDFDocument.load(fileBytes);
+                        const copiedPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                        copiedPages.forEach(page => mergedPdf.addPage(page));
+                    }
+
+                    const mergedBytes = await mergedPdf.save();
+                    const finalName = filenameMap[code] + ".pdf"; // Use custom name
+                    finalBlobs.push({ name: finalName, data: mergedBytes });
+                }
+
+                if (finalBlobs.length === 1) {
+                    const blob = new Blob([finalBlobs[0].data], { type: 'application/pdf' });
+                    downloadBlob(blob, finalBlobs[0].name);
+                    status.textContent = "Tek dosya indirildi!";
+                } else {
+                    finalBlobs.forEach(item => {
+                        zip.file(item.name, item.data);
+                    });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(content, "birlestirilmis_sinavlar.zip");
+                    status.textContent = "Tüm gruplar ZIP olarak indirildi!";
+                }
+
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Hata oluştu: " + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-bolt"></i> <span>Birleştir ve İndir</span>';
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+        }
+
+        // ================= DRAG & DROP FOR MERGER =================
+        // (Merger logic already setup in previous steps or can be verified. 
+        //  Assuming the file was truncated during previous huge replace_file_content)
+
+        // Note: The previous edits might have cut off the end of the script.
+        // I need to properly close the processAndDownloadPDF function if it was open, 
+        // or just close the script and body if it was at the end.
+        // Looking at line 680 in previous view, it was inside processAndDownloadPDF catch/finally block?
+        // No, line 872 is far down. let's just close everything safely.
+
+        // ================= AUTO TOOL LOGIC (NEW) =================
+        const autoDropZone = document.getElementById('dropZoneAuto');
+        const autoInput = document.getElementById('pdfInputAuto');
+        let autoFiles = [];
+        let activeSuffixesAuto = [];
+
+        autoDropZone.addEventListener('dragover', (e) => { e.preventDefault(); autoDropZone.classList.add('bg-white/30'); });
+        autoDropZone.addEventListener('dragleave', () => { autoDropZone.classList.remove('bg-white/30'); });
+        autoDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            autoDropZone.classList.remove('bg-white/30');
+            if (e.dataTransfer.files.length) handleAutoFiles(e.dataTransfer.files);
+        });
+        autoDropZone.addEventListener('click', () => autoInput.click());
+        autoInput.addEventListener('change', (e) => { if (e.target.files.length) handleAutoFiles(e.target.files); });
+
+        function normalizeTurkish(text) {
+            text = text.normalize('NFC'); // Fix for separated diacritics (NFD -> NFC)
+            const trMap = {
+                '\u00E7': 'c', '\u00C7': 'C', // ç, Ç
+                '\u011F': 'g', '\u011E': 'G', // ğ, Ğ
+                '\u0131': 'i', '\u0130': 'I', // ı, İ
+                '\u00F6': 'o', '\u00D6': 'O', // ö, Ö
+                '\u015F': 's', '\u015E': 'S', // ş, Ş
+                '\u00FC': 'u', '\u00DC': 'U'  // ü, Ü
+            };
+            return text.replace(/[\u00E7\u00C7\u011F\u011E\u0131\u0130\u00F6\u00D6\u015F\u015E\u00FC\u00DC]/g, function (match) {
+                return trMap[match];
+            });
+        }
+
+        function handleAutoFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type !== 'application/pdf') return;
+
+                // normalize filename first for processing
+                const originalName = file.name.replace('.pdf', '');
+                const nameParts = originalName.split('_');
+
+                let code = originalName;
+                let suffix = 'A';
+
+                if (nameParts.length >= 2) {
+                    suffix = nameParts.pop();
+                    code = nameParts.join('_');
+                }
+
+                // Apply Turkish normalization
+                code = normalizeTurkish(code);
+                suffix = normalizeTurkish(suffix);
+
+                if (!autoFiles.some(f => f.name === file.name)) {
+                    autoFiles.push({ name: file.name, file: file, code: code, suffix: suffix });
+                }
+            });
+            renderSuffixFilters(autoFiles, 'autoFilterContainer', activeSuffixesAuto, (newActive) => {
+                activeSuffixesAuto = newActive;
+                renderAutoGroups();
+            });
+            renderAutoGroups();
+        }
+
+        function renderAutoGroups() {
+            const container = document.getElementById('autoGroupsContainer');
+            const emptyMsg = document.getElementById('autoEmpty');
+            const content = document.getElementById('autoContent');
+
+            if (autoFiles.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                content.classList.add('hidden');
+                return;
+            }
+            emptyMsg.classList.add('hidden');
+            content.classList.remove('hidden');
+            container.innerHTML = '';
+
+            const groups = {};
+            const filteredFiles = autoFiles.filter(item => activeSuffixesAuto.includes(item.suffix));
+
+            filteredFiles.forEach(item => {
+                if (!groups[item.code]) groups[item.code] = [];
+                groups[item.code].push(item);
+            });
+            Object.keys(groups).forEach(code => {
+                groups[code].sort((a, b) => a.suffix.localeCompare(b.suffix));
+            });
+            document.getElementById('groupCountBadgeAuto').textContent = `${Object.keys(groups).length} Grup`;
+
+            Object.keys(groups).forEach(code => {
+                const groupItems = groups[code];
+                const card = document.createElement('div');
+                card.className = "bg-pink-50 rounded-lg p-4 border border-pink-200 flex flex-col md:flex-row md:items-center justify-between gap-4";
+                let partsHtml = groupItems.map(item =>
+                    `<span class="inline-block bg-white border px-2 py-1 rounded text-xs text-gray-600 mr-1">${item.suffix}</span>`
+                ).join('');
+                card.innerHTML = `
+                        <div class="flex items-center space-x-3 flex-1">
+                            <div class="bg-pink-100 p-2 rounded text-pink-600"><i class="fa-solid fa-folder"></i></div>
+                            <div class="flex-1">
+                                <label class="text-xs text-gray-400 block mb-0.5 ml-1">Çıktı Dosya İsmi</label>
+                                <input type="text" value="${code}" data-code="${code}" class="auto-group-input w-full md:w-64 font-bold text-gray-800 bg-white border border-gray-300 rounded px-2 py-1 focus:border-pink-500 outline-none text-sm">
+                                <div class="mt-1">${partsHtml}</div>
+                            </div>
+                        </div>
+                        <div class="text-right text-xs text-gray-500">${groupItems.length} Parça</div>
+                    `;
+                container.appendChild(card);
+            });
+        }
+
+        function applyBatchRenameAuto() {
+            const suffix = document.getElementById('suffixTextAuto').value;
+            if (!suffix) return;
+
+            document.querySelectorAll('.auto-group-input').forEach(input => {
+                input.value = input.value + suffix;
+            });
+        }
+
+        async function processAuto() {
+            const btn = document.getElementById('autoProcessBtn');
+            const status = document.getElementById('autoStatus');
+            if (autoFiles.length === 0) return;
+
+            try {
+                if (!cachedMainFontBytes || !cachedWatermarkFontBytes) throw new Error("Fontlar yüklenmedi. Sayfayı yenileyin.");
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> İşleniyor...';
+                status.textContent = "Birleştiriliyor ve Filigran ekleniyor...";
+
+                const { PDFDocument, rgb, degrees } = PDFLib;
+                const zip = new JSZip();
+
+                const groups = {};
+                const filteredFiles = autoFiles.filter(item => activeSuffixesAuto.includes(item.suffix));
+
+                filteredFiles.forEach(item => {
+                    if (!groups[item.code]) groups[item.code] = [];
+                    groups[item.code].push(item);
+                });
+
+                const filenameMap = {};
+                document.querySelectorAll('.auto-group-input').forEach(input => {
+                    filenameMap[input.dataset.code] = input.value.trim() || input.dataset.code;
+                });
+
+                // Watermark Settings (read from main view)
+                const texts = { header: document.getElementById('headerText').value, watermark: document.getElementById('watermarkText').value, footer: document.getElementById('footerText').value };
+                const settings = { headerFontSize: document.getElementById('headerFontSize').value, footerFontSize: document.getElementById('footerFontSize').value };
+                const colors = {
+                    main: hexToPdfColor(document.getElementById('mainColor').value),
+                    watermark: hexToPdfColor(document.getElementById('watermarkColor').value)
+                };
+                const opacity = parseInt(document.getElementById('watermarkOpacity').value) / 100;
+
+                const finalBlobs = [];
+                const groupKeys = Object.keys(groups);
+
+                for (const code of groupKeys) {
+                    const groupItems = groups[code].sort((a, b) => a.suffix.localeCompare(b.suffix));
+                    const mergedPdf = await PDFDocument.create();
+                    mergedPdf.registerFontkit(window.fontkit);
+
+                    // 1. Merge
+                    for (const item of groupItems) {
+                        const fileBytes = await item.file.arrayBuffer();
+                        const srcPdf = await PDFDocument.load(fileBytes);
+                        const copiedPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                        copiedPages.forEach(page => mergedPdf.addPage(page));
+                    }
+
+                    // 2. Embed Fonts & Apply Watermark
+                    const fMain = await mergedPdf.embedFont(cachedMainFontBytes);
+                    const fWm = await mergedPdf.embedFont(cachedWatermarkFontBytes);
+                    const customFonts = { main: fMain, watermark: fWm };
+
+                    mergedPdf.getPages().forEach(page => {
+                        drawOverlay(page, customFonts, rgb, degrees, texts, settings, colors, opacity);
+                    });
+
+                    const mergedBytes = await mergedPdf.save();
+                    const finalName = filenameMap[code] + ".pdf";
+                    finalBlobs.push({ name: finalName, data: mergedBytes });
+                }
+
+                if (finalBlobs.length === 1) {
+                    const blob = new Blob([finalBlobs[0].data], { type: 'application/pdf' });
+                    downloadBlob(blob, finalBlobs[0].name);
+                    status.textContent = "İşlem tamamlandı!";
+                } else {
+                    finalBlobs.forEach(item => {
+                        zip.file(item.name, item.data);
+                    });
+                    const content = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(content, "otomatik_islem_cikti.zip");
+                    status.textContent = "Hepsi tamamlandı ve indirildi!";
+                }
+            } catch (err) {
+                console.error(err);
+                status.textContent = "Hata: " + err.message;
+                alert("Hata: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>Birleştir ve Filigran Ekle</span>';
+            }
+        }
+
+
+        // ================= CANCEL TOOL LOGIC (NEW) =================
+        const cancelDropZone = document.getElementById('dropZoneCancel');
+        const cancelInput = document.getElementById('pdfInputCancel');
+        const cancelFileName = document.getElementById('fileNameCancel');
+        const cancelUploadText = document.getElementById('uploadTextCancel');
+        const cancelFileInfo = document.getElementById('fileInfoCancel');
+        const cancelRemoveBtn = document.getElementById('removeFileCancel');
+
+        // Date default
+        document.getElementById("tarihInput").valueAsDate = new Date();
+
+        cancelDropZone.addEventListener('dragover', (e) => { e.preventDefault(); cancelDropZone.classList.add('bg-red-50', 'border-red-400'); });
+        cancelDropZone.addEventListener('dragleave', () => { cancelDropZone.classList.remove('bg-red-50', 'border-red-400'); });
+        cancelDropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            cancelDropZone.classList.remove('bg-red-50', 'border-red-400');
+            if (e.dataTransfer.files.length) handleCancelFile(e.dataTransfer.files[0]);
+        });
+        cancelDropZone.addEventListener('click', () => cancelInput.click());
+        cancelInput.addEventListener('change', (e) => { if (e.target.files.length) handleCancelFile(e.target.files[0]); });
+
+        cancelRemoveBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            cancelInput.value = '';
+            cancelUploadText.classList.remove('hidden');
+            cancelFileInfo.classList.add('hidden');
+        });
+
+        function handleCancelFile(file) {
+            if (file.type !== 'application/pdf') return alert("Sadece PDF dosyaları!");
+            cancelFileName.textContent = file.name;
+            cancelUploadText.classList.add('hidden');
+            cancelFileInfo.classList.remove('hidden');
+        }
+
+        function parseIptal(text) {
+            return [...new Set(
+                (text || "")
+                    .split(/[\s,;]+/)
+                    .map(s => s.trim())
+                    .filter(Boolean)
+                    .map(Number)
+                    .filter(n => Number.isInteger(n) && n > 0)
+            )];
+        }
+
+        async function processCancelTool() {
+            const f = cancelInput.files[0] || (cancelFileName.textContent && cancelInput.files[0]); // Check helper
+
+            // Re-check input strictly
+            // Note: input element might not represent the dropped file if dropped. 
+            // Better to rely on a variable or just enforce input usage.
+            // For simplicity in this edit, assuming input.files is populated (drop handler needs to populate it or we store it)
+            // Let's fix drop handler to populate input
+
+            if (!cancelInput.files.length) return alert("Lütfen bir PDF dosyası seçin.");
+
+            const btn = document.getElementById('runCancelBtn');
+            const spinner = document.getElementById('cancelBtnSpinner');
+            const btnText = document.getElementById('cancelBtnText');
+            const successBox = document.getElementById('cancelSuccessBox');
+            const downloadLink = document.getElementById('cancelDownloadLink');
+
+            btn.disabled = true;
+            spinner.classList.remove('hidden');
+            btnText.textContent = "İşleniyor...";
+            successBox.classList.add('hidden');
+
+            try {
+                const iptalText = document.getElementById("iptalInput").value;
+                const degisiklikText = document.getElementById("degisiklikInput").value;
+                const tarih_val = document.getElementById("tarihInput").value;
+
+                const iptal = parseIptal(iptalText);
+
+                // Değişen soruların numaralarını parse et
+                const degisiklikKeys = [];
+                (degisiklikText || "").split(/[\s,;]+/).forEach(p => {
+                    if (p.includes(":")) {
+                        const q = parseInt(p.split(":")[0]);
+                        if (!isNaN(q) && q > 0) degisiklikKeys.push(q);
+                    }
+                });
+
+                // Kesişim kontrolü
+                const intersection = iptal.filter(x => degisiklikKeys.includes(x));
+                if (intersection.length > 0) {
+                    throw new Error(`Şu sorular hem İptal hem de Değişiklik listesinde olamaz: ${intersection.join(", ")}`);
+                }
+
+                let formattedDate = "";
+                if (tarih_val) {
+                    const parts = tarih_val.split("-");
+                    if (parts.length === 3) {
+                        formattedDate = `${parts[2]}.${parts[1]}.${parts[0]}`;
+                    }
+                }
+
+                const fd = new FormData();
+                fd.append("pdf", cancelInput.files[0]);
+                fd.append("iptal", iptal.join(","));
+                fd.append("degisiklik", degisiklikText);
+                fd.append("tarih", formattedDate);
+
+                const res = await fetch("/cancel", { method: "POST", body: fd });
+
+                if (!res.ok) {
+                    const t = await res.text().catch(() => "");
+                    throw new Error(t || "Sunucu hatası: " + res.status);
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+
+                downloadLink.href = url;
+                downloadLink.download = (f.name || "duzenlenmis_sinav.pdf");
+                successBox.classList.remove('hidden');
+
+            } catch (err) {
+                alert("Hata: " + err.message);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.add('hidden');
+                btnText.textContent = "Uygula ve PDF Oluştur";
+            }
+        }
+
+        // Fix Drop Handler to populate Input
+        function handleCancelFile(file) {
+            if (file.type !== 'application/pdf') return alert("Sadece PDF dosyaları!");
+
+            // Allow re-assignment to input for FormData usage
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            cancelInput.files = dt.files;
+
+            cancelFileName.textContent = file.name;
+            cancelUploadText.classList.add('hidden');
+            cancelFileInfo.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+
+</html>

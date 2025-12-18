@@ -10,7 +10,21 @@ app = FastAPI()
 
 @app.get("/")
 async def read_index():
-    return FileResponse("index.html")
+    # Kutuphane içindeki ana dosyayı (filigran (2).html) okuyup döndür
+    # Eğer ismini değiştirdiyseniz aşağıyı güncelleyin
+    path = os.path.join("kutuphane", "filigran (2).html")
+    if os.path.exists(path):
+        return FileResponse(path)
+    return "Kütüphane dosyası bulunamadı (kutuphane/filigran (2).html)"
+
+@app.get("/cancel-tool")
+async def read_cancel_tool():
+    return FileResponse("templates/cancel_tool.html")
+
+# Statik dosyaları (logo.png vs) kök dizinden sunmak için
+# Uyarı: Bu en son tanımlanmalı ki API rotalarını ezmesin.
+# from fastapi.staticfiles import StaticFiles
+# app.mount("/", StaticFiles(directory="kutuphane"), name="static_library")
 
 # --- Unicode ve "İ" için güvenli TTF fontlar ---
 # Yanına DejaVuSans.ttf indirmen gerekebilir ya da sistem yolunu ekle.
@@ -287,6 +301,11 @@ def apply_cancellations(pdf_bytes: bytes, cancelled_questions: list[int], change
         # --- 3) Değişiklik metinlerini tablo altına ekle ---
         # Örnek: "60. Sorunun cevabı A olarak güncellenmiştir. Tarih: 12.12.2025"
         if changed_answers:
+            # Cevap anahtarının başladığı X koordinatını bul (hizalamak için)
+            min_x = 50 # Fallback
+            if candidates:
+                min_x = min(c[0] for c in candidates)
+
             start_y = max_y + 30 # Tablonun biraz altına
             line_height = 14
             
@@ -295,7 +314,7 @@ def apply_cancellations(pdf_bytes: bytes, cancelled_questions: list[int], change
             for i, (q, ans) in enumerate(sorted_changes):
                 msg = f"{q}. Sorunun cevabı {ans} olarak güncellenmiştir. Tarih: {date_str}"
                 page.insert_text(
-                    (50, start_y + (i * line_height)),
+                    (min_x, start_y + (i * line_height)),
                     msg,
                     fontsize=10,
                     fontname=FN_REG,
@@ -329,3 +348,7 @@ async def cancel(
     pdf_bytes = await pdf.read()
     out = apply_cancellations(pdf_bytes, cancelled, changes, tarih)
     return Response(content=out, media_type="application/pdf")
+
+# Statik dosyalari en son ekliyoruz
+from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="kutuphane"), name="static_library")
